@@ -60,7 +60,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t bg-card p-4 animate-fade-in">
+          <div className="md:hidden absolute top-14 left-0 w-full border-b bg-card/95 backdrop-blur-sm p-4 animate-fade-in shadow-lg">
             <nav className="flex flex-col gap-1">
               {NAV_ITEMS.map((item) => (
                 <Link key={item.to} to={item.to} onClick={() => setMobileMenuOpen(false)}>

@@ -72,7 +72,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stats cards */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard title="Total" value={totalApps} icon={Briefcase} loading={loading} />
           <StatCard title="This Week" value={thisWeek} icon={TrendingUp} loading={loading} />
           <StatCard title="Due Today" value={todayReminders.length} icon={Clock} loading={loading} />
@@ -86,15 +86,15 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 overflow-x-auto pb-2">
                 {Array.from({ length: 7 }).map((_, i) => (
-                  <Skeleton key={i} className="h-8 w-24" />
+                  <Skeleton key={i} className="h-8 w-24 shrink-0" />
                 ))}
               </div>
             ) : (
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
                 {APPLICATION_STAGES.map((stage) => (
-                  <Link key={stage} to={`/applications?stage=${stage}`}>
+                  <Link key={stage} to={`/applications?stage=${stage}`} className="shrink-0">
                     <Badge variant="outline" className="gap-1.5 py-1.5 px-3 cursor-pointer hover:bg-muted transition-colors">
                       <span className={`h-2 w-2 rounded-full ${STAGE_COLORS[stage]}`} />
                       {STAGE_LABELS[stage]}

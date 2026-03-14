@@ -96,33 +96,35 @@ export default function ApplicationsList() {
               <Search className="h-4 w-4" />
             </Button>
           </form>
-          <Select value={stageFilter ?? "all"} onValueChange={(v) => setFilter("stage", v === "all" ? null : v)}>
-            <SelectTrigger className="w-full sm:w-40">
-              <SelectValue placeholder="Stage" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All stages</SelectItem>
-              {APPLICATION_STAGES.map((s) => (
-                <SelectItem key={s} value={s}>{STAGE_LABELS[s]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={workModeFilter ?? "all"} onValueChange={(v) => setFilter("workMode", v === "all" ? null : v)}>
-            <SelectTrigger className="w-full sm:w-36">
-              <SelectValue placeholder="Work mode" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All modes</SelectItem>
-              {(["remote", "hybrid", "onsite"] as WorkMode[]).map((m) => (
-                <SelectItem key={m} value={m}>{WORK_MODE_LABELS[m]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {hasFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
-              <X className="h-4 w-4" /> Clear
-            </Button>
-          )}
+          <div className="flex w-full sm:w-auto gap-2">
+            <Select value={stageFilter ?? "all"} onValueChange={(v) => setFilter("stage", v === "all" ? null : v)}>
+              <SelectTrigger className="flex-1 sm:w-40">
+                <SelectValue placeholder="Stage" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All stages</SelectItem>
+                {APPLICATION_STAGES.map((s) => (
+                  <SelectItem key={s} value={s}>{STAGE_LABELS[s]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={workModeFilter ?? "all"} onValueChange={(v) => setFilter("workMode", v === "all" ? null : v)}>
+              <SelectTrigger className="flex-1 sm:w-36">
+                <SelectValue placeholder="Work mode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All modes</SelectItem>
+                {(["remote", "hybrid", "onsite"] as WorkMode[]).map((m) => (
+                  <SelectItem key={m} value={m}>{WORK_MODE_LABELS[m]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {hasFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="shrink-0 gap-1 px-2 sm:px-3">
+                <X className="h-4 w-4 hidden sm:inline-block" /> Clear
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* List */}
