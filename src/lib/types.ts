@@ -14,11 +14,15 @@ export type FollowUpReminderUpdate = Database["public"]["Tables"]["follow_up_rem
 export type ResumeVersion = Database["public"]["Tables"]["resume_versions"]["Row"];
 export type ResumeVersionInsert = Database["public"]["Tables"]["resume_versions"]["Insert"];
 
+export type AiAnalysis = Database["public"]["Tables"]["ai_analyses"]["Row"];
+export type AiAnalysisInsert = Database["public"]["Tables"]["ai_analyses"]["Insert"];
+
 export type ApplicationStage = Database["public"]["Enums"]["application_stage"];
 export type EmploymentType = Database["public"]["Enums"]["employment_type"];
 export type WorkMode = Database["public"]["Enums"]["work_mode"];
 export type NoteType = Database["public"]["Enums"]["note_type"];
 export type ReminderStatus = Database["public"]["Enums"]["reminder_status"];
+export type AnalysisType = Database["public"]["Enums"]["analysis_type"];
 
 export const APPLICATION_STAGES: ApplicationStage[] = [
   "wishlist", "applied", "assessment", "interview", "offer", "rejected", "archived"
