@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,10 +8,22 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useSearchParams } from "react-router-dom";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search, X, Inbox, SearchX } from "lucide-react";
 import { APPLICATION_STAGES, STAGE_LABELS, STAGE_COLORS, WORK_MODE_LABELS, type ApplicationStage, type WorkMode } from "@/lib/types";
 import { format } from "date-fns";
 import { useState } from "react";
+import { StageBadge } from "@/components/StageBadge";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+import { getApplications } from "@/lib/services/applications.service";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const PAGE_SIZE = 20;
 
@@ -27,23 +38,13 @@ export default function ApplicationsList() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["applications", user?.id, stageFilter, workModeFilter, search, page],
-    queryFn: async () => {
-      let query = supabase
-        .from("applications")
-        .select("*", { count: "exact" })
-        .order("applied_date", { ascending: false })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-
-      if (stageFilter) query = query.eq("current_stage", stageFilter);
-      if (workModeFilter) query = query.eq("work_mode", workModeFilter);
-      if (search.trim()) {
-        query = query.or(`company_name.ilike.%${search.trim()}%,role_title.ilike.%${search.trim()}%`);
-      }
-
-      const { data, error, count } = await query;
-      if (error) throw error;
-      return { applications: data, count: count ?? 0 };
-    },
+    queryFn: () => getApplications({
+      stage: stageFilter,
+      workMode: workModeFilter,
+      search,
+      page,
+      pageSize: PAGE_SIZE,
+    }),
     enabled: !!user,
   });
 
@@ -70,15 +71,14 @@ export default function ApplicationsList() {
 
   return (
     <AppLayout>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-2xl font-bold">Applications</h1>
+      <div className="space-y-6">
+        <PageHeader title="Applications">
           <Link to="/applications/new">
             <Button size="sm" className="gap-2">
               <Plus className="h-4 w-4" /> New
             </Button>
           </Link>
-        </div>
+        </PageHeader>
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
@@ -96,69 +96,143 @@ export default function ApplicationsList() {
               <Search className="h-4 w-4" />
             </Button>
           </form>
-          <Select value={stageFilter ?? "all"} onValueChange={(v) => setFilter("stage", v === "all" ? null : v)}>
-            <SelectTrigger className="w-full sm:w-40">
-              <SelectValue placeholder="Stage" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All stages</SelectItem>
-              {APPLICATION_STAGES.map((s) => (
-                <SelectItem key={s} value={s}>{STAGE_LABELS[s]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={workModeFilter ?? "all"} onValueChange={(v) => setFilter("workMode", v === "all" ? null : v)}>
-            <SelectTrigger className="w-full sm:w-36">
-              <SelectValue placeholder="Work mode" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All modes</SelectItem>
-              {(["remote", "hybrid", "onsite"] as WorkMode[]).map((m) => (
-                <SelectItem key={m} value={m}>{WORK_MODE_LABELS[m]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {hasFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
-              <X className="h-4 w-4" /> Clear
-            </Button>
-          )}
+          <div className="flex w-full sm:w-auto gap-2">
+            <Select value={stageFilter ?? "all"} onValueChange={(v) => setFilter("stage", v === "all" ? null : v)}>
+              <SelectTrigger className="flex-1 sm:w-40">
+                <SelectValue placeholder="Stage" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All stages</SelectItem>
+                {APPLICATION_STAGES.map((s) => (
+                  <SelectItem key={s} value={s}>{STAGE_LABELS[s]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={workModeFilter ?? "all"} onValueChange={(v) => setFilter("workMode", v === "all" ? null : v)}>
+              <SelectTrigger className="flex-1 sm:w-36">
+                <SelectValue placeholder="Work mode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All modes</SelectItem>
+                {(["remote", "hybrid", "onsite"] as WorkMode[]).map((m) => (
+                  <SelectItem key={m} value={m}>{WORK_MODE_LABELS[m]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {hasFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="shrink-0 gap-1 px-2 sm:px-3">
+                <X className="h-4 w-4 hidden sm:inline-block" /> Clear
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* List */}
         {isLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 w-full rounded-lg" />
-            ))}
-          </div>
+          <>
+            {/* Desktop Table Skeletons */}
+            <div className="hidden md:block rounded-md border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Company & Role</TableHead>
+                    <TableHead>Stage</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Applied</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell>
+                        <Skeleton className="h-5 w-32 mb-1" />
+                        <Skeleton className="h-4 w-48" />
+                      </TableCell>
+                      <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            {/* Mobile Card Skeletons */}
+            <div className="space-y-2 md:hidden">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="flex flex-col gap-2 p-6">
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                    </div>
+                    <Skeleton className="h-4 w-48" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
         ) : (data?.applications.length ?? 0) === 0 ? (
           <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground mb-3">
-                {hasFilters ? "No applications match your filters" : "No applications yet"}
-              </p>
-              {!hasFilters && (
-                <Link to="/applications/new">
-                  <Button variant="outline">Add your first application</Button>
-                </Link>
-              )}
+            <CardContent className="py-16 p-6">
+              <EmptyState
+                icon={hasFilters ? SearchX : Inbox}
+                message={hasFilters ? "No applications match your filters" : "No applications yet"}
+                className="py-0"
+                action={
+                  !hasFilters ? (
+                    <Link to="/applications/new">
+                      <Button variant="outline">Add your first application</Button>
+                    </Link>
+                  ) : undefined
+                }
+              />
             </CardContent>
           </Card>
         ) : (
           <>
-            <div className="space-y-2">
+            {/* Desktop Table View */}
+            <div className="hidden md:block rounded-md border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Company & Role</TableHead>
+                    <TableHead>Stage</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Applied</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data!.applications.map((app) => (
+                    <TableRow key={app.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => window.location.href = `/applications/${app.id}`}>
+                      <TableCell>
+                        <div className="font-medium text-foreground">{app.company_name}</div>
+                        <div className="text-sm text-muted-foreground">{app.role_title}</div>
+                      </TableCell>
+                      <TableCell>
+                        <StageBadge stage={app.current_stage} />
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {app.location || "—"}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {format(new Date(app.applied_date), "MMM d, yyyy")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="space-y-2 md:hidden">
               {data!.applications.map((app) => (
                 <Link key={app.id} to={`/applications/${app.id}`} className="block">
                   <Card className="hover:shadow-sm transition-shadow">
-                    <CardContent className="flex items-center justify-between p-4">
+                    <CardContent className="flex items-center justify-between p-6">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-medium truncate">{app.company_name}</p>
-                          <Badge variant="outline" className="gap-1.5 shrink-0">
-                            <span className={`h-2 w-2 rounded-full ${STAGE_COLORS[app.current_stage]}`} />
-                            {STAGE_LABELS[app.current_stage]}
-                          </Badge>
+                          <StageBadge stage={app.current_stage} />
                         </div>
                         <p className="text-sm text-muted-foreground truncate mt-0.5">{app.role_title}</p>
                         <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">

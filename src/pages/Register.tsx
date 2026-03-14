@@ -36,7 +36,7 @@ export default function Register() {
           <Link to="/" className="font-heading text-lg font-bold text-primary mb-2 block">
             ApplyFlow
           </Link>
-          <CardTitle className="font-heading text-2xl">Create account</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight text-foreground font-heading">Create account</CardTitle>
           <CardDescription>Start tracking your job applications</CardDescription>
         </CardHeader>
         <CardContent>

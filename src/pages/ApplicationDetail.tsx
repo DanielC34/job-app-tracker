@@ -1,6 +1,5 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,14 +13,17 @@ import {
   APPLICATION_STAGES, type ApplicationStage,
 } from "@/lib/types";
 import { format } from "date-fns";
-import { Edit, Trash2, ExternalLink, ArrowLeft } from "lucide-react";
+import { Edit, Trash2, ExternalLink, ArrowLeft, FileQuestion } from "lucide-react";
 import { NotesTimeline } from "@/components/NotesTimeline";
 import { RemindersList } from "@/components/RemindersList";
+import { EmptyState } from "@/components/EmptyState";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getApplication, deleteApplication, updateApplicationStage } from "@/lib/services/applications.service";
+import { createStatusChangeNote } from "@/lib/services/notes.service";
 
 export default function ApplicationDetail() {
   const { id } = useParams<{ id: string }>();
@@ -31,23 +33,12 @@ export default function ApplicationDetail() {
 
   const { data: app, isLoading } = useQuery({
     queryKey: ["application", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("applications")
-        .select("*, resume_versions(label)")
-        .eq("id", id!)
-        .single();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getApplication(id!),
     enabled: !!id,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("applications").delete().eq("id", id!);
-      if (error) throw error;
-    },
+    mutationFn: () => deleteApplication(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["applications"] });
       toast.success("Application deleted");
@@ -57,15 +48,8 @@ export default function ApplicationDetail() {
 
   const stageMutation = useMutation({
     mutationFn: async (newStage: ApplicationStage) => {
-      const { error } = await supabase.from("applications").update({ current_stage: newStage }).eq("id", id!);
-      if (error) throw error;
-      // Add status change note
-      await supabase.from("application_notes").insert({
-        application_id: id!,
-        user_id: user!.id,
-        note_type: "status_change" as const,
-        content: `Stage changed to ${STAGE_LABELS[newStage]}`,
-      });
+      await updateApplicationStage(id!, newStage);
+      await createStatusChangeNote(id!, user!.id, STAGE_LABELS[newStage]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["application", id] });
@@ -78,10 +62,25 @@ export default function ApplicationDetail() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="max-w-3xl mx-auto space-y-4">
-          <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
+        <div className="max-w-3xl mx-auto space-y-6">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-16 mb-6" />
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-6 w-48" />
+          </div>
+          <Card>
+            <CardContent className="p-6 space-y-6">
+              <Skeleton className="h-10 w-40" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-5 w-32" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </AppLayout>
     );
@@ -90,9 +89,20 @@ export default function ApplicationDetail() {
   if (!app) {
     return (
       <AppLayout>
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Application not found</p>
-          <Link to="/applications"><Button variant="outline" className="mt-4">Back to list</Button></Link>
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <EmptyState
+            icon={FileQuestion}
+            message="Application not found"
+            className="py-0"
+            action={
+              <>
+                <p className="text-sm text-muted-foreground mb-6 -mt-2">This application may have been deleted.</p>
+                <Link to="/applications">
+                  <Button variant="outline">Back to list</Button>
+                </Link>
+              </>
+            }
+          />
         </div>
       </AppLayout>
     );
@@ -102,15 +112,17 @@ export default function ApplicationDetail() {
     <AppLayout>
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div>
-            <Button variant="ghost" size="sm" className="gap-1 mb-2 -ml-2" onClick={() => navigate("/applications")}>
+            <Button variant="ghost" size="sm" className="gap-1 mb-4 -ml-2" onClick={() => navigate("/applications")}>
               <ArrowLeft className="h-4 w-4" /> Back
             </Button>
-            <h1 className="font-heading text-2xl font-bold">{app.company_name}</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground font-heading break-words mb-1">
+              {app.company_name}
+            </h1>
             <p className="text-lg text-muted-foreground">{app.role_title}</p>
           </div>
-          <div className="flex gap-2 shrink-0">
+          <div className="flex gap-2 shrink-0 self-start sm:self-auto">
             <Link to={`/applications/${id}/edit`}>
               <Button variant="outline" size="sm" className="gap-1">
                 <Edit className="h-4 w-4" /> Edit
@@ -138,7 +150,7 @@ export default function ApplicationDetail() {
 
         {/* Details */}
         <Card>
-          <CardContent className="p-4 space-y-4">
+          <CardContent className="p-6 space-y-6">
             <div className="flex items-center gap-3 flex-wrap">
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Stage</Label>

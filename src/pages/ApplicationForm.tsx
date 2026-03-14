@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -12,11 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import {
   APPLICATION_STAGES, STAGE_LABELS,
   EMPLOYMENT_TYPE_LABELS, WORK_MODE_LABELS,
   type ApplicationStage, type EmploymentType, type WorkMode,
 } from "@/lib/types";
+import { getApplicationForEdit, createApplication, updateApplication } from "@/lib/services/applications.service";
+import { getResumeOptions } from "@/lib/services/resumes.service";
 
 export default function ApplicationForm() {
   const { id } = useParams();
@@ -27,21 +29,13 @@ export default function ApplicationForm() {
 
   const { data: existing, isLoading } = useQuery({
     queryKey: ["application", id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("applications").select("*").eq("id", id!).single();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getApplicationForEdit(id!),
     enabled: isEdit,
   });
 
   const { data: resumes } = useQuery({
     queryKey: ["resumes", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("resume_versions").select("id, label").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: getResumeOptions,
     enabled: !!user,
   });
 
@@ -107,11 +101,9 @@ export default function ApplicationForm() {
       };
 
       if (isEdit) {
-        const { error } = await supabase.from("applications").update(payload).eq("id", id!);
-        if (error) throw error;
+        await updateApplication(id!, payload);
       } else {
-        const { error } = await supabase.from("applications").insert(payload);
-        if (error) throw error;
+        await createApplication(payload);
       }
     },
     onSuccess: () => {
@@ -262,11 +254,12 @@ export default function ApplicationForm() {
                 <Textarea id="notes_summary" value={form.notes_summary} onChange={(e) => set("notes_summary", e.target.value)} rows={3} maxLength={2000} />
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <Button type="submit" disabled={mutation.isPending}>
-                  {mutation.isPending ? "Saving…" : isEdit ? "Update" : "Create"}
+              <div className="flex gap-3 pt-4">
+                <Button type="submit" disabled={mutation.isPending} className="min-w-[100px]">
+                  {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {mutation.isPending ? "Saving" : isEdit ? "Update" : "Create"}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={mutation.isPending}>Cancel</Button>
               </div>
             </form>
           </CardContent>
