@@ -14,7 +14,189 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      application_notes: {
+        Row: {
+          application_id: string
+          content: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          note_type: Database["public"]["Enums"]["note_type"]
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          content: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          note_type?: Database["public"]["Enums"]["note_type"]
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          note_type?: Database["public"]["Enums"]["note_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_notes_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applications: {
+        Row: {
+          applied_date: string
+          company_name: string
+          company_website: string | null
+          created_at: string
+          currency: string | null
+          current_stage: Database["public"]["Enums"]["application_stage"]
+          employment_type: Database["public"]["Enums"]["employment_type"]
+          id: string
+          job_url: string | null
+          location: string
+          notes_summary: string | null
+          resume_version_id: string | null
+          role_title: string
+          salary_max: number | null
+          salary_min: number | null
+          source: string
+          updated_at: string
+          user_id: string
+          work_mode: Database["public"]["Enums"]["work_mode"]
+        }
+        Insert: {
+          applied_date?: string
+          company_name: string
+          company_website?: string | null
+          created_at?: string
+          currency?: string | null
+          current_stage?: Database["public"]["Enums"]["application_stage"]
+          employment_type?: Database["public"]["Enums"]["employment_type"]
+          id?: string
+          job_url?: string | null
+          location?: string
+          notes_summary?: string | null
+          resume_version_id?: string | null
+          role_title: string
+          salary_max?: number | null
+          salary_min?: number | null
+          source?: string
+          updated_at?: string
+          user_id: string
+          work_mode?: Database["public"]["Enums"]["work_mode"]
+        }
+        Update: {
+          applied_date?: string
+          company_name?: string
+          company_website?: string | null
+          created_at?: string
+          currency?: string | null
+          current_stage?: Database["public"]["Enums"]["application_stage"]
+          employment_type?: Database["public"]["Enums"]["employment_type"]
+          id?: string
+          job_url?: string | null
+          location?: string
+          notes_summary?: string | null
+          resume_version_id?: string | null
+          role_title?: string
+          salary_max?: number | null
+          salary_min?: number | null
+          source?: string
+          updated_at?: string
+          user_id?: string
+          work_mode?: Database["public"]["Enums"]["work_mode"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_resume_version_id_fkey"
+            columns: ["resume_version_id"]
+            isOneToOne: false
+            referencedRelation: "resume_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      follow_up_reminders: {
+        Row: {
+          application_id: string
+          created_at: string
+          due_date: string
+          id: string
+          status: Database["public"]["Enums"]["reminder_status"]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          status?: Database["public"]["Enums"]["reminder_status"]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          status?: Database["public"]["Enums"]["reminder_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_up_reminders_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resume_versions: {
+        Row: {
+          created_at: string
+          file_path: string | null
+          file_url: string | null
+          id: string
+          label: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          label: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          label?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +205,23 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      application_stage:
+        | "wishlist"
+        | "applied"
+        | "assessment"
+        | "interview"
+        | "offer"
+        | "rejected"
+        | "archived"
+      employment_type:
+        | "full_time"
+        | "part_time"
+        | "contract"
+        | "freelance"
+        | "internship"
+      note_type: "note" | "status_change" | "follow_up"
+      reminder_status: "pending" | "done" | "dismissed"
+      work_mode: "remote" | "hybrid" | "onsite"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +348,26 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      application_stage: [
+        "wishlist",
+        "applied",
+        "assessment",
+        "interview",
+        "offer",
+        "rejected",
+        "archived",
+      ],
+      employment_type: [
+        "full_time",
+        "part_time",
+        "contract",
+        "freelance",
+        "internship",
+      ],
+      note_type: ["note", "status_change", "follow_up"],
+      reminder_status: ["pending", "done", "dismissed"],
+      work_mode: ["remote", "hybrid", "onsite"],
+    },
   },
 } as const
