@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format, isPast, isToday } from "date-fns";
 import { Bell, Plus, Check } from "lucide-react";
-import type { ReminderStatus } from "@/lib/types";
+import { getRemindersForApplication, createReminder, markReminderDone } from "@/lib/services/reminders.service";
 
 export function RemindersList({ applicationId }: { applicationId: string }) {
   const { user } = useAuth();
@@ -21,27 +20,16 @@ export function RemindersList({ applicationId }: { applicationId: string }) {
 
   const { data: reminders, isLoading } = useQuery({
     queryKey: ["application-reminders", applicationId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("follow_up_reminders")
-        .select("*")
-        .eq("application_id", applicationId)
-        .order("due_date", { ascending: true });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getRemindersForApplication(applicationId),
   });
 
   const addReminder = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("follow_up_reminders").insert({
-        application_id: applicationId,
-        user_id: user!.id,
-        title: title.trim(),
-        due_date: dueDate,
-      });
-      if (error) throw error;
-    },
+    mutationFn: () => createReminder({
+      applicationId,
+      userId: user!.id,
+      title,
+      dueDate,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["application-reminders", applicationId] });
       queryClient.invalidateQueries({ queryKey: ["reminders-dashboard"] });
@@ -54,10 +42,7 @@ export function RemindersList({ applicationId }: { applicationId: string }) {
   });
 
   const markDone = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("follow_up_reminders").update({ status: "done" as ReminderStatus }).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => markReminderDone(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["application-reminders", applicationId] });
       queryClient.invalidateQueries({ queryKey: ["reminders-dashboard"] });

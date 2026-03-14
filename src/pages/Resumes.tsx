@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,10 +10,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { FileText, Plus, Upload, Trash2 } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { getResumes, createResume, deleteResume, getResumeDownloadUrl } from "@/lib/services/resumes.service";
 
 export default function Resumes() {
   const { user } = useAuth();
@@ -27,38 +29,17 @@ export default function Resumes() {
 
   const { data: resumes, isLoading } = useQuery({
     queryKey: ["resumes", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("resume_versions")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: getResumes,
     enabled: !!user,
   });
 
   const addResume = useMutation({
-    mutationFn: async () => {
-      let uploadedPath: string | null = null;
-      let uploadedUrl: string | null = fileUrl.trim() || null;
-
-      if (file) {
-        const ext = file.name.split(".").pop();
-        const path = `${user!.id}/${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from("resumes").upload(path, file);
-        if (uploadError) throw uploadError;
-        uploadedPath = path;
-      }
-
-      const { error } = await supabase.from("resume_versions").insert({
-        user_id: user!.id,
-        label: label.trim(),
-        file_url: uploadedUrl,
-        file_path: uploadedPath,
-      });
-      if (error) throw error;
-    },
+    mutationFn: () => createResume({
+      userId: user!.id,
+      label,
+      file,
+      fileUrl,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["resumes"] });
       setLabel("");
@@ -70,14 +51,10 @@ export default function Resumes() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const deleteResume = useMutation({
-    mutationFn: async (id: string) => {
+  const deleteResumeMutation = useMutation({
+    mutationFn: (id: string) => {
       const resume = resumes?.find((r) => r.id === id);
-      if (resume?.file_path) {
-        await supabase.storage.from("resumes").remove([resume.file_path]);
-      }
-      const { error } = await supabase.from("resume_versions").delete().eq("id", id);
-      if (error) throw error;
+      return deleteResume(id, resume?.file_path);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["resumes"] });
@@ -95,24 +72,23 @@ export default function Resumes() {
     addResume.mutate();
   };
 
-  const getDownloadUrl = async (filePath: string) => {
-    const { data } = await supabase.storage.from("resumes").createSignedUrl(filePath, 3600);
-    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+  const handleDownload = async (filePath: string) => {
+    const signedUrl = await getResumeDownloadUrl(filePath);
+    if (signedUrl) window.open(signedUrl, "_blank");
   };
 
   return (
     <AppLayout>
       <div className="max-w-2xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-2xl font-bold">Resumes</h1>
+        <PageHeader title="Resumes">
           <Button size="sm" className="gap-2" onClick={() => setShowForm(!showForm)}>
             <Plus className="h-4 w-4" /> Add Version
           </Button>
-        </div>
+        </PageHeader>
 
         {showForm && (
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-6">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="resume-label">Version Label *</Label>
@@ -147,24 +123,28 @@ export default function Resumes() {
           </div>
         ) : (resumes?.length ?? 0) === 0 ? (
           <Card>
-            <CardContent className="py-12 text-center">
-              <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground mb-3">No resume versions yet</p>
-              <Button variant="outline" onClick={() => setShowForm(true)}>Add your first resume</Button>
+            <CardContent className="py-16 p-6">
+              <EmptyState
+                icon={FileText}
+                message="No resume versions yet"
+                action={
+                  <Button variant="outline" onClick={() => setShowForm(true)}>Add your first resume</Button>
+                }
+              />
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-2">
             {resumes!.map((r) => (
               <Card key={r.id}>
-                <CardContent className="flex items-center justify-between p-4">
+                <CardContent className="flex items-center justify-between p-6">
                   <div className="min-w-0">
                     <p className="font-medium truncate">{r.label}</p>
                     <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), "MMM d, yyyy")}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {r.file_path && (
-                      <Button variant="outline" size="sm" onClick={() => getDownloadUrl(r.file_path!)}>Download</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDownload(r.file_path!)}>Download</Button>
                     )}
                     {r.file_url && !r.file_path && (
                       <a href={r.file_url} target="_blank" rel="noopener noreferrer">
@@ -184,7 +164,7 @@ export default function Resumes() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => deleteResume.mutate(r.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                          <AlertDialogAction onClick={() => deleteResumeMutation.mutate(r.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>

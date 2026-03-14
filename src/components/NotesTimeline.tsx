@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { toast } from "sonner";
 import { NOTE_TYPE_LABELS, type NoteType } from "@/lib/types";
 import { format } from "date-fns";
 import { MessageSquare, Plus } from "lucide-react";
+import { getNotesForApplication, createNote } from "@/lib/services/notes.service";
 
 export function NotesTimeline({ applicationId }: { applicationId: string }) {
   const { user } = useAuth();
@@ -21,27 +21,16 @@ export function NotesTimeline({ applicationId }: { applicationId: string }) {
 
   const { data: notes, isLoading } = useQuery({
     queryKey: ["application-notes", applicationId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("application_notes")
-        .select("*")
-        .eq("application_id", applicationId)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getNotesForApplication(applicationId),
   });
 
   const addNote = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("application_notes").insert({
-        application_id: applicationId,
-        user_id: user!.id,
-        note_type: noteType,
-        content: content.trim(),
-      });
-      if (error) throw error;
-    },
+    mutationFn: () => createNote({
+      applicationId,
+      userId: user!.id,
+      noteType,
+      content,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["application-notes", applicationId] });
       setContent("");

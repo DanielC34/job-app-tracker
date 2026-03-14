@@ -34,7 +34,7 @@ export default function Login() {
           <Link to="/" className="font-heading text-lg font-bold text-primary mb-2 block">
             ApplyFlow
           </Link>
-          <CardTitle className="font-heading text-2xl">Welcome back</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight text-foreground font-heading">Welcome back</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>
