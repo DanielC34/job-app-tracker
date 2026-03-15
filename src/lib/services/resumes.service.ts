@@ -25,10 +25,11 @@ export interface CreateResumeParams {
     label: string;
     file?: File | null;
     fileUrl?: string | null;
+    parsedContent?: string | null;
 }
 
 /** Uploads a file (if provided) then inserts a new resume_version row. */
-export async function createResume({ userId, label, file, fileUrl }: CreateResumeParams) {
+export async function createResume({ userId, label, file, fileUrl, parsedContent }: CreateResumeParams) {
     let uploadedPath: string | null = null;
     let uploadedUrl: string | null = fileUrl?.trim() || null;
 
@@ -47,6 +48,7 @@ export async function createResume({ userId, label, file, fileUrl }: CreateResum
         label: label.trim(),
         file_url: uploadedUrl,
         file_path: uploadedPath,
+        parsed_content: parsedContent || null,
     });
     if (error) throw error;
 }
