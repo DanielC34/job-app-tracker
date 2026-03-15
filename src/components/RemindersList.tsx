@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format, isPast, isToday } from "date-fns";
 import { Bell, Plus, Check } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 import { getRemindersForApplication, createReminder, markReminderDone } from "@/lib/services/reminders.service";
 
 export function RemindersList({ applicationId }: { applicationId: string }) {
@@ -73,9 +74,12 @@ export function RemindersList({ applicationId }: { applicationId: string }) {
               <Label htmlFor="reminder-title">Title</Label>
               <Input id="reminder-title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} placeholder="Follow up on application…" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="reminder-date">Due Date</Label>
-              <Input id="reminder-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
+            <div className="space-y-2 flex flex-col pt-1">
+              <Label>Due Date</Label>
+              <DatePicker
+                date={dueDate ? new Date(dueDate) : undefined}
+                setDate={(d) => setDueDate(d ? format(d, "yyyy-MM-dd") : "")}
+              />
             </div>
             <div className="flex gap-2">
               <Button type="submit" size="sm" disabled={addReminder.isPending}>Add</Button>

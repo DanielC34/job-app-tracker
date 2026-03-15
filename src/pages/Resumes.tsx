@@ -17,6 +17,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { getResumes, createResume, deleteResume, getResumeDownloadUrl } from "@/lib/services/resumes.service";
+import { extractTextFromPdf } from "@/lib/pdfExtract";
 
 export default function Resumes() {
   const { user } = useAuth();
@@ -25,6 +26,7 @@ export default function Resumes() {
   const [label, setLabel] = useState("");
   const [fileUrl, setFileUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [isParsing, setIsParsing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: resumes, isLoading } = useQuery({
@@ -34,11 +36,12 @@ export default function Resumes() {
   });
 
   const addResume = useMutation({
-    mutationFn: () => createResume({
+    mutationFn: (parsedContent?: string | null) => createResume({
       userId: user!.id,
       label,
       file,
       fileUrl,
+      parsedContent,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["resumes"] });
@@ -62,14 +65,30 @@ export default function Resumes() {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!label.trim()) return;
     if (!file && !fileUrl.trim()) {
       toast.error("Upload a file or provide a URL");
       return;
     }
-    addResume.mutate();
+
+    let parsedContent: string | null = null;
+
+    if (file && file.type === "application/pdf") {
+      try {
+        setIsParsing(true);
+        parsedContent = await extractTextFromPdf(file);
+      } catch (err) {
+        console.error("PDF extraction failed:", err);
+        // Continue without parsed text if extraction fails
+        toast.error("Failed to extract text from PDF. Uploading without AI indexing.");
+      } finally {
+        setIsParsing(false);
+      }
+    }
+
+    addResume.mutate(parsedContent);
   };
 
   const handleDownload = async (filePath: string) => {
@@ -109,7 +128,9 @@ export default function Resumes() {
                   <Input id="resume-url" type="url" value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} placeholder="https://…" />
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" disabled={addResume.isPending}>{addResume.isPending ? "Adding…" : "Add Resume"}</Button>
+                  <Button type="submit" disabled={addResume.isPending || isParsing}>
+                    {isParsing ? "Extracting Text…" : addResume.isPending ? "Adding…" : "Add Resume"}
+                  </Button>
                   <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
                 </div>
               </form>

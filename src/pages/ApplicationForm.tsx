@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { format } from "date-fns";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   APPLICATION_STAGES, STAGE_LABELS,
   EMPLOYMENT_TYPE_LABELS, WORK_MODE_LABELS,
@@ -220,9 +222,12 @@ export default function ApplicationForm() {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="applied_date">Applied Date</Label>
-                  <Input id="applied_date" type="date" value={form.applied_date} onChange={(e) => set("applied_date", e.target.value)} required />
+                <div className="space-y-2 flex flex-col pt-1">
+                  <Label>Applied Date</Label>
+                  <DatePicker
+                    date={form.applied_date ? new Date(form.applied_date) : undefined}
+                    setDate={(d) => set("applied_date", d ? format(d, "yyyy-MM-dd") : "")}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Resume Version</Label>

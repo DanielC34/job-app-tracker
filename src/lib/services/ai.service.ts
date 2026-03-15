@@ -27,13 +27,14 @@ export interface AiErrorResponse {
 }
 
 export interface AiSuccessResponse<T> {
+    analysisId: string;
     analysisType: AnalysisType;
     result: T;
 }
 
 async function invokeFunction<T>(
     functionName: string,
-    payload: Record<string, unknown>
+    payload: any
 ): Promise<T> {
     const { data, error } = await supabase.functions.invoke<T>(functionName, {
         body: payload,
@@ -49,10 +50,11 @@ async function invokeFunction<T>(
 
 export interface ResumeReviewResult {
     score: number;
+    summary: string;
     strengths: string[];
     weaknesses: string[];
-    suggestions: string[];
-    tailored: boolean;
+    improvements: string[];
+    suggested_rewrites: Array<{ original: string; rewrite: string }>;
 }
 
 export interface ResumeReviewParams {
