@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { FileText, Plus, Upload, Trash2 } from "lucide-react";
+import { FileText, Plus, Upload, Trash2, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import {
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { getResumes, createResume, deleteResume, getResumeDownloadUrl } from "@/lib/services/resumes.service";
 import { extractTextFromPdf } from "@/lib/pdfExtract";
+import { ResumeReviewDialog } from "@/components/ResumeReviewDialog";
 
 export default function Resumes() {
   const { user } = useAuth();
@@ -27,6 +29,7 @@ export default function Resumes() {
   const [fileUrl, setFileUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
+  const [reviewResume, setReviewResume] = useState<{ id: string; content: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: resumes, isLoading } = useQuery({
@@ -163,7 +166,16 @@ export default function Resumes() {
                     <p className="font-medium truncate">{r.label}</p>
                     <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), "MMM d, yyyy")}</p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 border-t mt-4 pt-4 sm:border-t-0 sm:mt-0 sm:pt-0 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-primary hover:text-primary hover:bg-primary/5"
+                      onClick={() => setReviewResume({ id: r.id, content: r.parsed_content || "" })}
+                    >
+                      <Sparkles className="h-4 w-4" /> AI Review
+                    </Button>
+                    <Separator orientation="vertical" className="hidden sm:block h-6 mx-1" />
                     {r.file_path && (
                       <Button variant="outline" size="sm" onClick={() => handleDownload(r.file_path!)}>Download</Button>
                     )}
@@ -196,6 +208,13 @@ export default function Resumes() {
           </div>
         )}
       </div>
+
+      <ResumeReviewDialog
+        open={!!reviewResume}
+        onOpenChange={(open) => !open && setReviewResume(null)}
+        resumeId={reviewResume?.id || ""}
+        parsedContent={reviewResume?.content || ""}
+      />
     </AppLayout>
   );
 }

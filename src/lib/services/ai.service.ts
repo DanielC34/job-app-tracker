@@ -76,9 +76,10 @@ export function invokeResumeReview(params: ResumeReviewParams) {
 
 export interface JobMatchScoreResult {
     score: number;
-    matchedSkills: string[];
-    missingSkills: string[];
-    recommendation: string;
+    summary: string;
+    matched_skills: string[];
+    missing_skills: string[];
+    recommendations: string[];
 }
 
 export interface JobMatchScoreParams {
@@ -93,6 +94,38 @@ export function invokeJobMatchScore(params: JobMatchScoreParams) {
         "job-match-score",
         params
     );
+}
+
+/**
+ * Fetches the latest job match analysis for a specific application and resume version.
+ */
+export async function getLatestJobMatchAnalysis(applicationId: string, resumeId: string) {
+    const { data, error } = await supabase
+        .from("ai_analyses")
+        .select("*")
+        .eq("application_id", applicationId)
+        .eq("resume_id", resumeId)
+        .eq("analysis_type", "job_match_score")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    return data;
+}
+
+/**
+ * Fetches all AI analyses (match scores, interview prep, etc.) for a specific application.
+ */
+export async function getAnalysesForApplication(applicationId: string) {
+    const { data, error } = await supabase
+        .from("ai_analyses")
+        .select("*")
+        .eq("application_id", applicationId)
+        .order("created_at", { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return data;
 }
 
 // ---------------------------------------------------------------------------
