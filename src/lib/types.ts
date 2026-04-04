@@ -9,13 +9,33 @@ export type ApplicationNoteInsert = Database["public"]["Tables"]["application_no
 
 export type FollowUpReminder = Database["public"]["Tables"]["follow_up_reminders"]["Row"];
 export type FollowUpReminderInsert = Database["public"]["Tables"]["follow_up_reminders"]["Insert"];
-export type FollowUpReminderUpdate = Database["public"]["Tables"]["follow_up_reminders"]["Update"];
+export type Resume = {
+  id: string;
+  user_id: string;
+  title: string;
+  created_at: string;
+};
+export type ResumeInsert = Omit<Resume, "id" | "created_at">;
 
 export type ResumeVersion = Database["public"]["Tables"]["resume_versions"]["Row"];
 export type ResumeVersionInsert = Database["public"]["Tables"]["resume_versions"]["Insert"];
 
 export type AiAnalysis = Database["public"]["Tables"]["ai_analyses"]["Row"];
 export type AiAnalysisInsert = Database["public"]["Tables"]["ai_analyses"]["Insert"];
+
+export type InterviewQuestion = {
+  id: string;
+  application_id: string;
+  ai_analysis_id: string | null;
+  question_text: string;
+  category: string | null;
+  tips: string | null;
+  is_practiced: boolean;
+  user_notes: string | null;
+  created_at: string;
+};
+export type InterviewQuestionInsert = Omit<InterviewQuestion, "id" | "created_at">;
+export type InterviewQuestionUpdate = Partial<InterviewQuestionInsert>;
 
 export type ApplicationStage = Database["public"]["Enums"]["application_stage"];
 export type EmploymentType = Database["public"]["Enums"]["employment_type"];

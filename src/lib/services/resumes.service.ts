@@ -43,8 +43,30 @@ export async function createResume({ userId, label, file, fileUrl, parsedContent
         uploadedPath = path;
     }
 
+    // --- Ensure parent Resume exists ---
+    let { data: parentResume, error: fetchError } = await supabase
+        .from("resumes")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("title", "Default Resume")
+        .maybeSingle();
+
+    if (fetchError) throw fetchError;
+
+    if (!parentResume) {
+        const { data: newResume, error: createError } = await supabase
+            .from("resumes")
+            .insert({ user_id: userId, title: "Default Resume" })
+            .select("id")
+            .single();
+        if (createError) throw createError;
+        parentResume = newResume;
+    }
+
+    // --- Insert Resume Version ---
     const { error } = await supabase.from("resume_versions").insert({
         user_id: userId,
+        resume_id: parentResume.id,
         label: label.trim(),
         file_url: uploadedUrl,
         file_path: uploadedPath,
