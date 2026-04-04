@@ -104,7 +104,7 @@ export async function getLatestJobMatchAnalysis(applicationId: string, resumeId:
         .from("ai_analyses")
         .select("*")
         .eq("application_id", applicationId)
-        .eq("resume_id", resumeId)
+        .eq("resume_version_id", resumeId)
         .eq("analysis_type", "job_match_score")
         .order("created_at", { ascending: false })
         .limit(1)

@@ -100,7 +100,7 @@ Return only the raw JSON.`;
       .from("ai_analyses")
       .insert({
         user_id: userId,
-        resume_id: resumeId,
+        resume_version_id: resumeId,
         analysis_type: "resume_review",
         result_json: resultJson,
       })

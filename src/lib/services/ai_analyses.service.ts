@@ -8,7 +8,7 @@ export async function getLatestResumeAnalysis(resumeId: string, type: AnalysisTy
   const { data, error } = await supabase
     .from("ai_analyses")
     .select("*")
-    .eq("resume_id", resumeId)
+    .eq("resume_version_id", resumeId)
     .eq("analysis_type", type)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -39,7 +39,7 @@ export async function getLatestApplicationAnalysis(applicationId: string, type: 
  * Fetches all analyses for a specific target (resume or application).
  */
 export async function getAnalyses(targetId: string, targetType: "resume" | "application") {
-  const column = targetType === "resume" ? "resume_id" : "application_id";
+  const column = targetType === "resume" ? "resume_version_id" : "application_id";
   const { data, error } = await supabase
     .from("ai_analyses")
     .select("*")
