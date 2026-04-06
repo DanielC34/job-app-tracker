@@ -1,38 +1,65 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.40.0";
-import { handleCors, errorResponse, jsonResponse } from "../_shared/cors.ts";
 import { requireAuth } from "../_shared/auth.ts";
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error("Missing Supabase environment variables");
+}
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 const VALID_TONES = ["professional", "friendly", "concise"] as const;
 type Tone = typeof VALID_TONES[number];
 
 Deno.serve(async (req: Request) => {
-    const corsResult = handleCors(req);
-    if (corsResult) return corsResult;
+    if (req.method === "OPTIONS") {
+        return new Response("ok", { headers: corsHeaders });
+    }
 
     const authResult = await requireAuth(req);
-    if (authResult instanceof Response) return authResult;
+    if (authResult instanceof Response) {
+  return new Response(authResult.body, {
+    status: authResult.status,
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "application/json",
+    },
+  });
+}
     // const { userId } = authResult; // Not strictly needed if we fetch application in Function
 
     let body: unknown;
     try {
         body = await req.json();
     } catch {
-        return errorResponse("Invalid JSON body");
+        return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
     }
 
     const { applicationId, tone, contactName, context } = body as Record<string, unknown>;
 
     if (!applicationId || typeof applicationId !== "string") {
-        return errorResponse("Missing required field: applicationId");
+        return new Response(JSON.stringify({ error: "Missing required field: applicationId" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
     }
 
     if (!GEMINI_API_KEY) {
         console.error("GEMINI_API_KEY is not set");
-        return errorResponse("AI service is currently unavailable", 500);
+        return new Response(JSON.stringify({ error: "AI service is currently unavailable" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
     }
 
     const resolvedTone: Tone =
@@ -41,6 +68,39 @@ Deno.serve(async (req: Request) => {
             : "professional";
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+    // =========================
+    // RATE LIMITING
+    // =========================
+    const { userId } = authResult;
+    const ONE_MINUTE_AGO = new Date(Date.now() - 60 * 1000).toISOString();
+
+    const { count, error: rateError } = await supabase
+        .from("rate_limits")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("action", "follow_up_generate")
+        .gte("created_at", ONE_MINUTE_AGO);
+
+    if (rateError) {
+        console.error("Rate limit error:", rateError);
+        throw new Error("Rate limit check failed");
+    }
+
+    if ((count ?? 0) >= 5) {
+        return new Response(
+            JSON.stringify({
+                success: false,
+                error: "Rate limit exceeded. Try again in a minute.",
+            }),
+            { 
+                status: 429, 
+                headers: { ...corsHeaders, "Content-Type": "application/json" } 
+            }
+        );
+    }
+
+    // Log the action for rate limiting handled after success
 
     // 1. Fetch application metadata
     const { data: app, error: appError } = await supabase
@@ -51,7 +111,10 @@ Deno.serve(async (req: Request) => {
 
     if (appError || !app) {
         console.error("Error fetching application:", appError);
-        return errorResponse("Application not found", 404);
+        return new Response(JSON.stringify({ error: "Application not found" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
     }
 
     // 2. Craft Gemini Prompt
@@ -144,15 +207,33 @@ Deno.serve(async (req: Request) => {
             throw new Error("Failed to store generated email");
         }
 
-        return jsonResponse({
-            analysisType: "followup_draft",
-            applicationId,
-            emailId: email.id,
-            result: resultJson,
-        }, 200);
+        // Log the successful generation for rate limiting
+        await supabase.from("rate_limits").insert({
+            user_id: userId,
+            action: "follow_up_generate",
+        });
+
+        return new Response(
+            JSON.stringify({
+                analysisType: "followup_draft",
+                applicationId,
+                emailId: email.id,
+                result: resultJson,
+            }),
+            {
+                status: 200,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+        );
 
     } catch (error) {
         console.error("Follow-up generation error:", error);
-        return errorResponse(error instanceof Error ? error.message : "An unexpected error occurred", 500);
+        return new Response(
+            JSON.stringify({ error: error instanceof Error ? error.message : "An unexpected error occurred" }),
+            {
+                status: 500,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+        );
     }
 });
