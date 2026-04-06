@@ -17,6 +17,7 @@ import { Edit, Trash2, ExternalLink, ArrowLeft, FileQuestion } from "lucide-reac
 import { NotesTimeline } from "@/components/NotesTimeline";
 import { RemindersList } from "@/components/RemindersList";
 import { EmptyState } from "@/components/EmptyState";
+import { FollowUpCard } from "@/components/FollowUpCard";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -224,6 +225,9 @@ export default function ApplicationDetail() {
             )}
           </CardContent>
         </Card>
+
+        {/* Follow-Up Drafts */}
+        <FollowUpCard applicationId={id!} />
 
         {/* Reminders */}
         <RemindersList applicationId={id!} />

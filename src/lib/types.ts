@@ -9,6 +9,17 @@ export type ApplicationNoteInsert = Database["public"]["Tables"]["application_no
 
 export type FollowUpReminder = Database["public"]["Tables"]["follow_up_reminders"]["Row"];
 export type FollowUpReminderInsert = Database["public"]["Tables"]["follow_up_reminders"]["Insert"];
+
+export type FollowUpEmail = {
+  id: string;
+  application_id: string;
+  tone: string;
+  subject: string;
+  body: string;
+  created_at: string;
+};
+export type FollowUpEmailInsert = Omit<FollowUpEmail, "id" | "created_at">;
+
 export type Resume = {
   id: string;
   user_id: string;

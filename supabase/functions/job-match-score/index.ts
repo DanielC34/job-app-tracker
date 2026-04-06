@@ -104,7 +104,7 @@ Return only the raw JSON.`;
             .insert({
                 user_id: userId,
                 application_id: applicationId,
-                resume_id: resumeId,
+                resume_version_id: resumeId,
                 analysis_type: "job_match_score",
                 result_json: resultJson,
             })
