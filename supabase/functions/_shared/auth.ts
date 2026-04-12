@@ -5,28 +5,32 @@ import { errorResponse } from "./cors.ts";
  * Extracts and validates the auth token from the Authorization header.
  * Returns the authenticated user, or an error Response if invalid.
  */
-export async function requireAuth(
-    req: Request
-): Promise<{ userId: string } | Response> {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-        return errorResponse("Missing Authorization header", 401);
-    }
+export async function requireAuth(req: Request) {
+  const authHeader = req.headers.get("Authorization");
 
-    const supabase = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-        { global: { headers: { Authorization: authHeader } } }
+  if (!authHeader) {
+    return new Response(
+      JSON.stringify({ error: "Missing Authorization header" }),
+      { status: 401 }
     );
+  }
 
-    const {
-        data: { user },
-        error,
-    } = await supabase.auth.getUser();
+  const token = authHeader.replace("Bearer ", "");
 
-    if (error || !user) {
-        return errorResponse("Unauthorized", 401);
-    }
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")! // safe here because platform injects correct one
+  );
 
-    return { userId: user.id };
+  const { data, error } = await supabase.auth.getUser(token);
+
+  if (error || !data.user) {
+    console.error("Auth error:", error);
+    return new Response(
+      JSON.stringify({ error: "Invalid JWT" }),
+      { status: 401 }
+    );
+  }
+
+  return { userId: data.user.id };
 }
