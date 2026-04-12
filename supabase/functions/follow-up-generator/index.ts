@@ -1,14 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.40.0";
 import { requireAuth } from "../_shared/auth.ts";
 
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error("Missing Supabase environment variables");
-}
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -18,46 +10,73 @@ const corsHeaders = {
 const VALID_TONES = ["professional", "friendly", "concise"] as const;
 type Tone = typeof VALID_TONES[number];
 
+type DiagnosticStage =
+  | "env_check"
+  | "auth"
+  | "request_parse"
+  | "rate_limit_check"
+  | "application_fetch"
+  | "gemini_call"
+  | "database_insert"
+  | "unknown";
+
+function stageError(stage: DiagnosticStage, error: unknown) {
+  return new Response(
+    JSON.stringify({
+      error: "follow-up-generation-failed",
+      stage,
+      message: error instanceof Error ? error.message : "unknown",
+    }),
+    {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    }
+  );
+}
+
 Deno.serve(async (req: Request) => {
+    console.log("--- FUNCTION REACHED: follow-up-generator ---");
+
     if (req.method === "OPTIONS") {
         return new Response("ok", { headers: corsHeaders });
     }
 
-    const authResult = await requireAuth(req);
-    if (authResult instanceof Response) {
-  return new Response(authResult.body, {
-    status: authResult.status,
-    headers: {
-      ...corsHeaders,
-      "Content-Type": "application/json",
-    },
-  });
-}
-    // const { userId } = authResult; // Not strictly needed if we fetch application in Function
+    // Stage 1: Env check
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    let body: unknown;
+    if (!SUPABASE_URL) return stageError("env_check", new Error("SUPABASE_URL is not set"));
+    if (!SUPABASE_SERVICE_ROLE_KEY) return stageError("env_check", new Error("SUPABASE_SERVICE_ROLE_KEY is not set"));
+    if (!GEMINI_API_KEY) return stageError("env_check", new Error("GEMINI_API_KEY is not set"));
+
+    // Stage 2: Auth
+    let authResult: { userId: string } | Response;
     try {
-        body = await req.json();
-    } catch {
-        return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-            status: 400,
+        authResult = await requireAuth(req);
+    } catch (e) {
+        return stageError("auth", e);
+    }
+    if (authResult instanceof Response) {
+        return new Response(authResult.body, {
+            status: authResult.status,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     }
 
-    const { applicationId, tone, contactName, context } = body as Record<string, unknown>;
+    // Stage 3: Request parse
+    let body: Record<string, unknown>;
+    try {
+        body = await req.json();
+    } catch (e) {
+        return stageError("request_parse", e);
+    }
+
+    const { applicationId, tone, contactName, context } = body;
 
     if (!applicationId || typeof applicationId !== "string") {
         return new Response(JSON.stringify({ error: "Missing required field: applicationId" }), {
             status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-    }
-
-    if (!GEMINI_API_KEY) {
-        console.error("GEMINI_API_KEY is not set");
-        return new Response(JSON.stringify({ error: "AI service is currently unavailable" }), {
-            status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     }
@@ -67,64 +86,57 @@ Deno.serve(async (req: Request) => {
             ? (tone as Tone)
             : "professional";
 
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-
-    // =========================
-    // RATE LIMITING
-    // =========================
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { userId } = authResult;
-    const ONE_MINUTE_AGO = new Date(Date.now() - 60 * 1000).toISOString();
 
-    const { count, error: rateError } = await supabase
-        .from("rate_limits")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("action", "follow_up_generate")
-        .gte("created_at", ONE_MINUTE_AGO);
+    // Stage 4: Rate limit check
+    try {
+        const ONE_MINUTE_AGO = new Date(Date.now() - 60 * 1000).toISOString();
+        const { count, error: rateError } = await supabase
+            .from("rate_limits")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", userId)
+            .eq("action", "follow_up_generate")
+            .gte("created_at", ONE_MINUTE_AGO);
 
-    if (rateError) {
-        console.error("Rate limit error:", rateError);
-        throw new Error("Rate limit check failed");
+        if (rateError) throw rateError;
+
+        if ((count ?? 0) >= 5) {
+            return new Response(
+                JSON.stringify({ success: false, error: "Rate limit exceeded. Try again in a minute." }),
+                { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+    } catch (e) {
+        return stageError("rate_limit_check", e);
     }
 
-    if ((count ?? 0) >= 5) {
-        return new Response(
-            JSON.stringify({
-                success: false,
-                error: "Rate limit exceeded. Try again in a minute.",
-            }),
-            { 
-                status: 429, 
-                headers: { ...corsHeaders, "Content-Type": "application/json" } 
-            }
-        );
+    // Stage 5: Application fetch
+    let app: { company_name: string; role_title: string; current_stage: string; job_description: string | null; notes_summary: string | null };
+    try {
+        const { data, error: appError } = await supabase
+            .from("applications")
+            .select("company_name, role_title, current_stage, job_description, notes_summary")
+            .eq("id", applicationId)
+            .single();
+
+        if (appError) throw appError;
+        if (!data) throw new Error("No application found for the given ID");
+        app = data;
+    } catch (e) {
+        return stageError("application_fetch", e);
     }
 
-    // Log the action for rate limiting handled after success
+    // Stage 6: Gemini call
+    let resultJson: { tone: string; subject: string; body: string };
+    try {
+        const toneInstructions: Record<Tone, string> = {
+            professional: "Use formal language, be brief and polite, and end with a clear next step or call to action.",
+            friendly: "Use warm and personable language, show light enthusiasm, and address the contact by their first name if provided. Keep it professional but approachable.",
+            concise: "Keep it to 3-4 sentences maximum. Use a subject line under 8 words. No filler phrases or fluff.",
+        };
 
-    // 1. Fetch application metadata
-    const { data: app, error: appError } = await supabase
-        .from("applications")
-        .select("company_name, role_title, current_stage, job_description, notes_summary")
-        .eq("id", applicationId)
-        .single();
-
-    if (appError || !app) {
-        console.error("Error fetching application:", appError);
-        return new Response(JSON.stringify({ error: "Application not found" }), {
-            status: 404,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-    }
-
-    // 2. Craft Gemini Prompt
-    const toneInstructions: Record<Tone, string> = {
-        professional: "Use formal language, be brief and polite, and end with a clear next step or call to action.",
-        friendly: "Use warm and personable language, show light enthusiasm, and address the contact by their first name if provided. Keep it professional but approachable.",
-        concise: "Keep it to 3-4 sentences maximum. Use a subject line under 8 words. No filler phrases or fluff.",
-    };
-
-    const prompt = `You are a professional career assistant. Draft a follow-up email for a job application.
+        const prompt = `You are a professional career assistant. Draft a follow-up email for a job application.
 
     Context:
     - Company: ${app.company_name}
@@ -150,47 +162,37 @@ Deno.serve(async (req: Request) => {
 
     Return ONLY the raw JSON.`;
 
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    response_mime_type: "application/json",
-                },
-            }),
-        });
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { response_mime_type: "application/json" },
+                }),
+            }
+        );
 
         if (!response.ok) {
-            const errorData = await response.json();
-            console.error("Gemini API error:", errorData);
-            throw new Error("Failed to get response from AI provider");
+            const errBody = await response.json();
+            throw new Error(`Gemini responded with ${response.status}: ${JSON.stringify(errBody)}`);
         }
 
         const aiData = await response.json();
         const resultText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!resultText) throw new Error("Empty response from AI model");
 
-        if (!resultText) {
-            throw new Error("Empty response from AI model");
-        }
-
-        let resultJson;
-        try {
-            resultJson = JSON.parse(resultText);
-        } catch (e) {
-            console.error("Failed to parse AI JSON:", resultText);
-            throw new Error("Invalid format received from AI model");
-        }
-
-        // 3. Strict Validation
+        resultJson = JSON.parse(resultText);
         if (!resultJson.subject || !resultJson.body) {
-            throw new Error("AI response missing mandatory 'subject' or 'body' fields");
+            throw new Error("AI response missing 'subject' or 'body' fields");
         }
+    } catch (e) {
+        return stageError("gemini_call", e);
+    }
 
-        // 4. Store in database
+    // Stage 7: Database insert
+    try {
         const { data: email, error: dbError } = await supabase
             .from("follow_up_emails")
             .insert({
@@ -202,12 +204,8 @@ Deno.serve(async (req: Request) => {
             .select()
             .single();
 
-        if (dbError) {
-            console.error("Database error storing follow-up email:", dbError);
-            throw new Error("Failed to store generated email");
-        }
+        if (dbError) throw dbError;
 
-        // Log the successful generation for rate limiting
         await supabase.from("rate_limits").insert({
             user_id: userId,
             action: "follow_up_generate",
@@ -225,15 +223,7 @@ Deno.serve(async (req: Request) => {
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
             }
         );
-
-    } catch (error) {
-        console.error("Follow-up generation error:", error);
-        return new Response(
-            JSON.stringify({ error: error instanceof Error ? error.message : "An unexpected error occurred" }),
-            {
-                status: 500,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-            }
-        );
+    } catch (e) {
+        return stageError("database_insert", e);
     }
 });
