@@ -167,14 +167,14 @@ export default function Resumes() {
                     <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), "MMM d, yyyy")}</p>
                   </div>
                   <div className="flex items-center gap-2 border-t mt-4 pt-4 sm:border-t-0 sm:mt-0 sm:pt-0 shrink-0">
-                    <Button
+                    {/* <Button
                       variant="outline"
                       size="sm"
                       className="gap-1.5 text-primary hover:text-primary hover:bg-primary/5"
                       onClick={() => setReviewResume({ id: r.id, content: r.parsed_content || "" })}
                     >
                       <Sparkles className="h-4 w-4" /> AI Review
-                    </Button>
+                    </Button> */}
                     <Separator orientation="vertical" className="hidden sm:block h-6 mx-1" />
                     {r.file_path && (
                       <Button variant="outline" size="sm" onClick={() => handleDownload(r.file_path!)}>Download</Button>

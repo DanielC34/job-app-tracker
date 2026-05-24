@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,14 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useSearchParams } from "react-router-dom";
-import { Plus, Search, X, Inbox, SearchX } from "lucide-react";
+import { Plus, Search, X, Inbox, SearchX, Trash2 } from "lucide-react";
 import { APPLICATION_STAGES, STAGE_LABELS, STAGE_COLORS, WORK_MODE_LABELS, type ApplicationStage, type WorkMode } from "@/lib/types";
 import { format } from "date-fns";
 import { useState } from "react";
 import { StageBadge } from "@/components/StageBadge";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
-import { getApplications } from "@/lib/services/applications.service";
+import { getApplications, deleteApplication } from "@/lib/services/applications.service";
+import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -46,6 +51,20 @@ export default function ApplicationsList() {
       pageSize: PAGE_SIZE,
     }),
     enabled: !!user,
+  });
+
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteApplication(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+      queryClient.invalidateQueries({ queryKey: ["applications-stats"] });
+      toast.success("Application deleted successfully");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Failed to delete application");
+    },
   });
 
   const setFilter = (key: string, value: string | null) => {
@@ -139,6 +158,7 @@ export default function ApplicationsList() {
                     <TableHead>Stage</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>Applied</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -151,6 +171,7 @@ export default function ApplicationsList() {
                       <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-8 rounded-md" /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -199,6 +220,7 @@ export default function ApplicationsList() {
                     <TableHead>Stage</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>Applied</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -217,6 +239,35 @@ export default function ApplicationsList() {
                       <TableCell className="text-sm text-muted-foreground">
                         {format(new Date(app.applied_date), "MMM d, yyyy")}
                       </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete this application?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete <strong>{app.company_name} — {app.role_title}</strong>. This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteMutation.mutate(app.id);
+                                }}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -226,23 +277,50 @@ export default function ApplicationsList() {
             {/* Mobile Card View */}
             <div className="space-y-2 md:hidden">
               {data!.applications.map((app) => (
-                <Link key={app.id} to={`/applications/${app.id}`} className="block">
-                  <Card className="hover:shadow-sm transition-shadow">
-                    <CardContent className="flex items-center justify-between p-6">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-medium truncate">{app.company_name}</p>
-                          <StageBadge stage={app.current_stage} />
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate mt-0.5">{app.role_title}</p>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                          {app.location && <span>{app.location}</span>}
-                          <span>{format(new Date(app.applied_date), "MMM d, yyyy")}</span>
-                        </div>
+                <Card key={app.id} className="hover:shadow-sm transition-shadow cursor-pointer" onClick={() => window.location.href = `/applications/${app.id}`}>
+                  <CardContent className="flex items-center justify-between p-6">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium truncate">{app.company_name}</p>
+                        <StageBadge stage={app.current_stage} />
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                      <p className="text-sm text-muted-foreground truncate mt-0.5">{app.role_title}</p>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                        {app.location && <span>{app.location}</span>}
+                        <span>{format(new Date(app.applied_date), "MMM d, yyyy")}</span>
+                      </div>
+                    </div>
+                    <div className="ml-4 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete this application?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete <strong>{app.company_name} — {app.role_title}</strong>. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteMutation.mutate(app.id);
+                              }}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
 

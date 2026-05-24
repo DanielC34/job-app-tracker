@@ -17,7 +17,6 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { CURRENCIES, DEFAULT_CURRENCY } from "@/lib/utils/currency";
 import {
   APPLICATION_STAGES, STAGE_LABELS,
-  EMPLOYMENT_TYPE_LABELS, WORK_MODE_LABELS,
   type ApplicationStage, type EmploymentType, type WorkMode,
 } from "@/lib/types";
 import { getApplicationForEdit, createApplication, updateApplication } from "@/lib/services/applications.service";
@@ -54,7 +53,6 @@ export default function ApplicationForm() {
     applied_date: new Date().toISOString().split("T")[0],
     current_stage: "applied" as ApplicationStage,
     job_url: "",
-    company_website: "",
     notes_summary: "",
     resume_version_id: "",
   });
@@ -73,7 +71,6 @@ export default function ApplicationForm() {
       applied_date: existing.applied_date,
       current_stage: existing.current_stage,
       job_url: existing.job_url ?? "",
-      company_website: existing.company_website ?? "",
       notes_summary: existing.notes_summary ?? "",
       resume_version_id: existing.resume_version_id ?? "",
     });
@@ -94,7 +91,6 @@ export default function ApplicationForm() {
         applied_date: form.applied_date,
         current_stage: form.current_stage,
         job_url: form.job_url.trim() || null,
-        company_website: form.company_website.trim() || null,
         notes_summary: form.notes_summary.trim() || null,
         resume_version_id: form.resume_version_id || null,
         user_id: user!.id,
@@ -159,37 +155,8 @@ export default function ApplicationForm() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input id="location" value={form.location} onChange={(e) => set("location", e.target.value)} maxLength={200} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="source">Source</Label>
-                  <Input id="source" placeholder="LinkedIn, Indeed, Referral…" value={form.source} onChange={(e) => set("source", e.target.value)} maxLength={100} />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <Label>Employment Type</Label>
-                  <Select value={form.employment_type} onValueChange={(v) => set("employment_type", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(EMPLOYMENT_TYPE_LABELS).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Work Mode</Label>
-                  <Select value={form.work_mode} onValueChange={(v) => set("work_mode", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(WORK_MODE_LABELS).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="job_url">Job URL</Label>
+                  <Input id="job_url" type="url" value={form.job_url} onChange={(e) => set("job_url", e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label>Stage</Label>
@@ -243,17 +210,6 @@ export default function ApplicationForm() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="job_url">Job URL</Label>
-                  <Input id="job_url" type="url" value={form.job_url} onChange={(e) => set("job_url", e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company_website">Company Website</Label>
-                  <Input id="company_website" type="url" value={form.company_website} onChange={(e) => set("company_website", e.target.value)} />
                 </div>
               </div>
 
