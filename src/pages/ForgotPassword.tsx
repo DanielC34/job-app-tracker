@@ -84,7 +84,7 @@ export default function ForgotPassword() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <Link to="/" className="mb-2 block">
-            <img src="/applyflow_logo_full.png" alt="ApplyFlow" className="h-8 mx-auto" />
+            <img src="/applyflow_refined_logo_1.png" alt="ApplyFlow" className="h-[4.25rem] mx-auto" />
           </Link>
           <CardTitle className="text-2xl font-bold tracking-tight text-foreground font-heading">
             Forgot password?

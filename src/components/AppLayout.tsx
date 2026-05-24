@@ -22,7 +22,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <aside className="hidden md:flex flex-col w-64 border-r bg-card/50 min-h-screen sticky top-0 shrink-0">
         <div className="p-6 h-14 flex items-center mb-6">
           <Link to="/dashboard">
-            <img src="/applyflow_logo_full.png" alt="ApplyFlow" className="h-8" />
+            <img src="/applyflow_refined_logo_1.png" alt="ApplyFlow" className="h-[4.25rem]" />
           </Link>
         </div>
         <nav className="flex-1 px-4 flex flex-col gap-2">
@@ -51,7 +51,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <header className="md:hidden sticky top-0 z-40 border-b bg-card/80 backdrop-blur-sm">
         <div className="container flex h-14 items-center justify-between">
           <Link to="/dashboard">
-            <img src="/applyflow_logo_full.png" alt="ApplyFlow" className="h-7" />
+            <img src="/applyflow_refined_logo_1.png" alt="ApplyFlow" className="h-[4.25rem]" />
           </Link>
 
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -63,7 +63,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <SheetContent side="left" className="w-64 p-0 flex flex-col">
               <div className="p-6 h-14 flex items-center border-b mb-4">
                 <SheetTitle>
-                  <img src="/applyflow_logo_full.png" alt="ApplyFlow" className="h-8" />
+                  <img src="/applyflow_refined_logo_1.png" alt="ApplyFlow" className="h-[4.25rem]" />
                 </SheetTitle>
               </div>
               <nav className="flex-1 px-4 flex flex-col gap-2">
