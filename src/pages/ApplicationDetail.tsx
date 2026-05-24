@@ -44,8 +44,13 @@ export default function ApplicationDetail() {
     mutationFn: () => deleteApplication(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["applications"] });
-      toast.success("Application deleted");
+      queryClient.invalidateQueries({ queryKey: ["applications-stats"] });
+      queryClient.removeQueries({ queryKey: ["application", id] });
+      toast.success("Application deleted successfully");
       navigate("/applications");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Failed to delete application");
     },
   });
 
@@ -133,18 +138,27 @@ export default function ApplicationDetail() {
             </Link>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1 text-destructive hover:text-destructive">
-                  <Trash2 className="h-4 w-4" />
+                <Button variant="outline" size="sm" className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">
+                  <Trash2 className="h-4 w-4" /> Delete
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete application?</AlertDialogTitle>
-                  <AlertDialogDescription>This will permanently delete this application and all associated notes and reminders.</AlertDialogDescription>
+                  <AlertDialogTitle>Delete this application?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete <strong>{app.company_name} — {app.role_title}</strong> and all associated notes, reminders, and follow-ups. This action cannot be undone.
+                  </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => deleteMutation.mutate()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                  <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteMutation.mutate()}
+                    disabled={deleteMutation.isPending}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-1.5"
+                  >
+                    {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {deleteMutation.isPending ? "Deleting…" : "Delete permanently"}
+                  </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -194,24 +208,15 @@ export default function ApplicationDetail() {
               )}
             </div>
 
-            {(app.job_url || app.company_website) && (
+            {app.job_url && (
               <>
                 <Separator />
                 <div className="flex gap-3 flex-wrap">
-                  {app.job_url && (
-                    <a href={app.job_url} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" size="sm" className="gap-1">
-                        <ExternalLink className="h-3 w-3" /> Job Post
-                      </Button>
-                    </a>
-                  )}
-                  {app.company_website && (
-                    <a href={app.company_website} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" size="sm" className="gap-1">
-                        <ExternalLink className="h-3 w-3" /> Company
-                      </Button>
-                    </a>
-                  )}
+                  <a href={app.job_url} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="sm" className="gap-1.5">
+                      <ExternalLink className="h-3 w-3" /> View Job Post
+                    </Button>
+                  </a>
                 </div>
               </>
             )}
@@ -231,7 +236,7 @@ export default function ApplicationDetail() {
 
 
         {/* Follow-Up Drafts */}
-        <FollowUpCard applicationId={id!} />
+        {/* <FollowUpCard applicationId={id!} /> */}
 
         {/* Reminders */}
         <RemindersList applicationId={id!} />
