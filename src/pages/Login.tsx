@@ -28,8 +28,8 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <Link to="/" className="font-heading text-lg font-bold text-primary mb-2 block">
-            ApplyFlow
+          <Link to="/" className="mb-2 block">
+            <img src="/applyflow_logo_full.png" alt="ApplyFlow" className="h-8 mx-auto" />
           </Link>
           <CardTitle className="text-2xl font-bold tracking-tight text-foreground font-heading">Welcome back</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>

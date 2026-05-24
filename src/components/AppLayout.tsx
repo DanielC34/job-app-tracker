@@ -21,8 +21,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 border-r bg-card/50 min-h-screen sticky top-0 shrink-0">
         <div className="p-6 h-14 flex items-center mb-6">
-          <Link to="/dashboard" className="font-heading text-xl font-bold text-primary">
-            ApplyFlow
+          <Link to="/dashboard">
+            <img src="/applyflow_logo_full.png" alt="ApplyFlow" className="h-8" />
           </Link>
         </div>
         <nav className="flex-1 px-4 flex flex-col gap-2">
@@ -50,8 +50,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Mobile Header & Drawer */}
       <header className="md:hidden sticky top-0 z-40 border-b bg-card/80 backdrop-blur-sm">
         <div className="container flex h-14 items-center justify-between">
-          <Link to="/dashboard" className="font-heading text-lg font-bold text-primary">
-            ApplyFlow
+          <Link to="/dashboard">
+            <img src="/applyflow_logo_full.png" alt="ApplyFlow" className="h-7" />
           </Link>
 
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -62,7 +62,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0 flex flex-col">
               <div className="p-6 h-14 flex items-center border-b mb-4">
-                <SheetTitle className="font-heading text-xl font-bold text-primary">ApplyFlow</SheetTitle>
+                <SheetTitle>
+                  <img src="/applyflow_logo_full.png" alt="ApplyFlow" className="h-8" />
+                </SheetTitle>
               </div>
               <nav className="flex-1 px-4 flex flex-col gap-2">
                 {NAV_ITEMS.map((item) => (
