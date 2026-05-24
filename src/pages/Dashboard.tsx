@@ -124,7 +124,7 @@ export default function Dashboard() {
                         key={r.id}
                         to={`/applications/${r.application_id}`}
                         title={r.title}
-                        subtitle={`${(r as any).applications?.company_name} — ${(r as any).applications?.role_title}`}
+                        subtitle={`${(r as { applications?: { company_name?: string; role_title?: string } }).applications?.company_name} — ${(r as { applications?: { company_name?: string; role_title?: string } }).applications?.role_title}`}
                         badgeText={isOverdue ? "Overdue" : isDueToday ? "Today" : format(new Date(r.due_date), "MMM d")}
                         badgeVariant={isOverdue ? "destructive" : isDueToday ? "default" : "secondary"}
                       />

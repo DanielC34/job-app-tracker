@@ -48,8 +48,7 @@ export default function ApplicationForm() {
     employment_type: "full_time" as EmploymentType,
     work_mode: "remote" as WorkMode,
     source: "",
-    salary_min: "",
-    salary_max: "",
+    salary: "",
     currency: "USD",
     applied_date: new Date().toISOString().split("T")[0],
     current_stage: "applied" as ApplicationStage,
@@ -68,8 +67,7 @@ export default function ApplicationForm() {
       employment_type: existing.employment_type,
       work_mode: existing.work_mode,
       source: existing.source,
-      salary_min: existing.salary_min?.toString() ?? "",
-      salary_max: existing.salary_max?.toString() ?? "",
+      salary: existing.salary?.toString() ?? "",
       currency: existing.currency ?? "USD",
       applied_date: existing.applied_date,
       current_stage: existing.current_stage,
@@ -90,8 +88,7 @@ export default function ApplicationForm() {
         employment_type: form.employment_type,
         work_mode: form.work_mode,
         source: form.source.trim(),
-        salary_min: form.salary_min ? Number(form.salary_min) : null,
-        salary_max: form.salary_max ? Number(form.salary_max) : null,
+        salary: form.salary ? Number(form.salary) : null,
         currency: form.currency || "USD",
         applied_date: form.applied_date,
         current_stage: form.current_stage,
@@ -206,18 +203,26 @@ export default function ApplicationForm() {
                 </div>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="salary_min">Salary Min</Label>
-                  <Input id="salary_min" type="number" value={form.salary_min} onChange={(e) => set("salary_min", e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salary_max">Salary Max</Label>
-                  <Input id="salary_max" type="number" value={form.salary_max} onChange={(e) => set("salary_max", e.target.value)} />
+                  <Label htmlFor="salary">Salary</Label>
+                  <Input id="salary" type="number" placeholder="e.g. 80000" value={form.salary} onChange={(e) => set("salary", e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="currency">Currency</Label>
-                  <Input id="currency" value={form.currency} onChange={(e) => set("currency", e.target.value)} maxLength={3} />
+                  <Select value={form.currency} onValueChange={(v) => set("currency", v)}>
+                    <SelectTrigger id="currency"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="GBP">GBP</SelectItem>
+                      <SelectItem value="CAD">CAD</SelectItem>
+                      <SelectItem value="AUD">AUD</SelectItem>
+                      <SelectItem value="INR">INR</SelectItem>
+                      <SelectItem value="JPY">JPY</SelectItem>
+                      <SelectItem value="CNY">CNY</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

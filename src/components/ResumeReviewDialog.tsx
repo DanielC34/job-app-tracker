@@ -36,7 +36,7 @@ export function ResumeReviewDialog({
       setResult(data.result);
       toast.success("Resume analysis complete!");
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error(err.message || "Failed to analyze resume");
     },
   });

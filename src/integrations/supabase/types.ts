@@ -57,7 +57,7 @@ export type Database = {
           id: string
           user_id: string
           application_id: string | null
-          resume_id: string | null
+          resume_version_id: string | null
           analysis_type: Database["public"]["Enums"]["analysis_type"]
           result_json: Json
           created_at: string
@@ -66,7 +66,7 @@ export type Database = {
           id?: string
           user_id: string
           application_id?: string | null
-          resume_id?: string | null
+          resume_version_id?: string | null
           analysis_type: Database["public"]["Enums"]["analysis_type"]
           result_json?: Json
           created_at?: string
@@ -75,7 +75,7 @@ export type Database = {
           id?: string
           user_id?: string
           application_id?: string | null
-          resume_id?: string | null
+          resume_version_id?: string | null
           analysis_type?: Database["public"]["Enums"]["analysis_type"]
           result_json?: Json
           created_at?: string
@@ -89,10 +89,61 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ai_analyses_resume_id_fkey"
-            columns: ["resume_id"]
+            foreignKeyName: "ai_analyses_resume_version_id_fkey"
+            columns: ["resume_version_id"]
             isOneToOne: false
             referencedRelation: "resume_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_questions: {
+        Row: {
+          id: string
+          application_id: string
+          ai_analysis_id: string | null
+          question_text: string
+          category: string | null
+          tips: string | null
+          is_practiced: boolean
+          user_notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          application_id: string
+          ai_analysis_id?: string | null
+          question_text: string
+          category?: string | null
+          tips?: string | null
+          is_practiced?: boolean
+          user_notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          application_id?: string
+          ai_analysis_id?: string | null
+          question_text?: string
+          category?: string | null
+          tips?: string | null
+          is_practiced?: boolean
+          user_notes?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_questions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_questions_ai_analysis_id_fkey"
+            columns: ["ai_analysis_id"]
+            isOneToOne: false
+            referencedRelation: "ai_analyses"
             referencedColumns: ["id"]
           },
         ]
@@ -113,8 +164,7 @@ export type Database = {
           notes_summary: string | null
           resume_version_id: string | null
           role_title: string
-          salary_max: number | null
-          salary_min: number | null
+          salary: number | null
           source: string
           updated_at: string
           user_id: string
@@ -135,8 +185,7 @@ export type Database = {
           notes_summary?: string | null
           resume_version_id?: string | null
           role_title: string
-          salary_max?: number | null
-          salary_min?: number | null
+          salary?: number | null
           source?: string
           updated_at?: string
           user_id: string
@@ -157,8 +206,7 @@ export type Database = {
           notes_summary?: string | null
           resume_version_id?: string | null
           role_title?: string
-          salary_max?: number | null
-          salary_min?: number | null
+          salary?: number | null
           source?: string
           updated_at?: string
           user_id?: string

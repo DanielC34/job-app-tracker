@@ -32,7 +32,7 @@ export async function generateFollowUpEmail(params: GenerateFollowUpParams): Pro
     // FunctionsHttpError has a context.body with the raw response
     if ("context" in error) {
       try {
-        const body = await (error as any).context.json();
+        const body = await (error as { context: { json: () => Promise<{ stage?: string; message?: string }> } }).context.json();
         console.error("Edge Function error body:", body);
         throw new Error(`[${body.stage}] ${body.message}`);
       } catch {
@@ -58,5 +58,5 @@ export async function getFollowUpEmails(applicationId: string): Promise<FollowUp
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return (data as any) || [];
+  return (data as FollowUpEmail[]) || [];
 }
