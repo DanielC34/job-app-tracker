@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 // Mocking the validation logic used in the Edge Function
-function validateAiResponse(result: any) {
+function validateAiResponse(result: { subject?: string; body?: string; tone?: string }) {
   if (!result.subject || typeof result.subject !== "string" || result.subject.trim() === "") {
     throw new Error("AI response missing mandatory 'subject' field");
   }

@@ -31,7 +31,7 @@ export interface CreateResumeParams {
 /** Uploads a file (if provided) then inserts a new resume_version row. */
 export async function createResume({ userId, label, file, fileUrl, parsedContent }: CreateResumeParams) {
     let uploadedPath: string | null = null;
-    let uploadedUrl: string | null = fileUrl?.trim() || null;
+    const uploadedUrl: string | null = fileUrl?.trim() || null;
 
     if (file) {
         const ext = file.name.split(".").pop();
@@ -44,7 +44,7 @@ export async function createResume({ userId, label, file, fileUrl, parsedContent
     }
 
     // --- Ensure parent Resume exists ---
-    let { data: parentResume, error: fetchError } = await supabase
+    const { data: existingResume, error: fetchError } = await supabase
         .from("resumes")
         .select("id")
         .eq("user_id", userId)
@@ -52,6 +52,8 @@ export async function createResume({ userId, label, file, fileUrl, parsedContent
         .maybeSingle();
 
     if (fetchError) throw fetchError;
+
+    let parentResume = existingResume;
 
     if (!parentResume) {
         const { data: newResume, error: createError } = await supabase

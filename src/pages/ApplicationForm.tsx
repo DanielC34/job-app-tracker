@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { DatePicker } from "@/components/ui/date-picker";
+import { CURRENCIES, DEFAULT_CURRENCY } from "@/lib/utils/currency";
 import {
   APPLICATION_STAGES, STAGE_LABELS,
   EMPLOYMENT_TYPE_LABELS, WORK_MODE_LABELS,
@@ -48,9 +49,8 @@ export default function ApplicationForm() {
     employment_type: "full_time" as EmploymentType,
     work_mode: "remote" as WorkMode,
     source: "",
-    salary_min: "",
-    salary_max: "",
-    currency: "USD",
+    salary: "",
+    currency: DEFAULT_CURRENCY,
     applied_date: new Date().toISOString().split("T")[0],
     current_stage: "applied" as ApplicationStage,
     job_url: "",
@@ -68,9 +68,8 @@ export default function ApplicationForm() {
       employment_type: existing.employment_type,
       work_mode: existing.work_mode,
       source: existing.source,
-      salary_min: existing.salary_min?.toString() ?? "",
-      salary_max: existing.salary_max?.toString() ?? "",
-      currency: existing.currency ?? "USD",
+      salary: existing.salary?.toString() ?? "",
+      currency: existing.currency ?? DEFAULT_CURRENCY,
       applied_date: existing.applied_date,
       current_stage: existing.current_stage,
       job_url: existing.job_url ?? "",
@@ -90,9 +89,8 @@ export default function ApplicationForm() {
         employment_type: form.employment_type,
         work_mode: form.work_mode,
         source: form.source.trim(),
-        salary_min: form.salary_min ? Number(form.salary_min) : null,
-        salary_max: form.salary_max ? Number(form.salary_max) : null,
-        currency: form.currency || "USD",
+        salary: form.salary ? Number(form.salary) : null,
+        currency: form.currency || DEFAULT_CURRENCY,
         applied_date: form.applied_date,
         current_stage: form.current_stage,
         job_url: form.job_url.trim() || null,
@@ -206,18 +204,23 @@ export default function ApplicationForm() {
                 </div>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="salary_min">Salary Min</Label>
-                  <Input id="salary_min" type="number" value={form.salary_min} onChange={(e) => set("salary_min", e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salary_max">Salary Max</Label>
-                  <Input id="salary_max" type="number" value={form.salary_max} onChange={(e) => set("salary_max", e.target.value)} />
+                  <Label htmlFor="salary">Salary</Label>
+                  <Input id="salary" type="number" placeholder="e.g. 80000" value={form.salary} onChange={(e) => set("salary", e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="currency">Currency</Label>
-                  <Input id="currency" value={form.currency} onChange={(e) => set("currency", e.target.value)} maxLength={3} />
+                  <Select value={form.currency} onValueChange={(v) => set("currency", v)}>
+                    <SelectTrigger id="currency"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {CURRENCIES.map((currency) => (
+                        <SelectItem key={currency.code} value={currency.code}>
+                          {currency.symbol} {currency.code} - {currency.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

@@ -103,7 +103,7 @@ export function NotesTimeline({ applicationId }: { applicationId: string }) {
             {notes!.map((note) => (
               <div key={note.id} className="border rounded-md p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <Badge variant={noteTypeColors[note.note_type] as any}>{NOTE_TYPE_LABELS[note.note_type]}</Badge>
+                  <Badge variant={noteTypeColors[note.note_type] as "secondary" | "default" | "outline" | "destructive"}>{NOTE_TYPE_LABELS[note.note_type]}</Badge>
                   <span className="text-xs text-muted-foreground">
                     {format(new Date(note.created_at), "MMM d, yyyy h:mm a")}
                   </span>

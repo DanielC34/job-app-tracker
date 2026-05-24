@@ -28,9 +28,22 @@ export async function generateFollowUpEmail(params: GenerateFollowUpParams): Pro
     body: params,
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    // FunctionsHttpError has a context.body with the raw response
+    if ("context" in error) {
+      try {
+        const body = await (error as { context: { json: () => Promise<{ stage?: string; message?: string }> } }).context.json();
+        console.error("Edge Function error body:", body);
+        throw new Error(`[${body.stage}] ${body.message}`);
+      } catch {
+        // fallback if body isn't parseable
+      }
+    }
+    console.error("Function invocation error:", error);
+    throw error;
+  }
   if (!data) throw new Error("No response from follow-up-generator");
-  
+
   return data;
 }
 
@@ -45,5 +58,5 @@ export async function getFollowUpEmails(applicationId: string): Promise<FollowUp
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return (data as any) || [];
+  return (data as FollowUpEmail[]) || [];
 }

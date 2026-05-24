@@ -14,10 +14,12 @@ import {
 } from "@/lib/types";
 import { format } from "date-fns";
 import { Edit, Trash2, ExternalLink, ArrowLeft, FileQuestion } from "lucide-react";
+import { formatSalary } from "@/lib/utils/currency";
 import { NotesTimeline } from "@/components/NotesTimeline";
 import { RemindersList } from "@/components/RemindersList";
 import { EmptyState } from "@/components/EmptyState";
 import { FollowUpCard } from "@/components/FollowUpCard";
+
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -181,14 +183,14 @@ export default function ApplicationDetail() {
               <Detail label="Work Mode" value={WORK_MODE_LABELS[app.work_mode]} />
               <Detail label="Source" value={app.source} />
               <Detail label="Applied" value={format(new Date(app.applied_date), "MMM d, yyyy")} />
-              {(app.salary_min || app.salary_max) && (
+              {app.salary && (
                 <Detail
                   label="Salary"
-                  value={`${app.salary_min ? app.salary_min.toLocaleString() : "—"} – ${app.salary_max ? app.salary_max.toLocaleString() : "—"} ${app.currency}`}
+                  value={formatSalary(app.salary, app.currency)}
                 />
               )}
               {app.resume_versions && (
-                <Detail label="Resume" value={(app.resume_versions as any).label} />
+                <Detail label="Resume" value={(app.resume_versions as { label: string } | null)?.label} />
               )}
             </div>
 
@@ -225,6 +227,8 @@ export default function ApplicationDetail() {
             )}
           </CardContent>
         </Card>
+
+
 
         {/* Follow-Up Drafts */}
         <FollowUpCard applicationId={id!} />

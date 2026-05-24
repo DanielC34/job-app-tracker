@@ -41,7 +41,7 @@ export function FollowUpCard({ applicationId }: FollowUpCardProps) {
       queryClient.invalidateQueries({ queryKey: ["follow-up-emails", applicationId] });
       toast.success("Follow-up email generated!");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error("Generation error:", error);
       toast.error(error.message || "Failed to generate email");
     },
@@ -66,7 +66,7 @@ export function FollowUpCard({ applicationId }: FollowUpCardProps) {
             <Label htmlFor="tone">Tone</Label>
             <Select
               value={tone}
-              onValueChange={(v: any) => setTone(v)}
+              onValueChange={(v) => setTone(v as "professional" | "friendly" | "concise")}
               disabled={mutation.isPending}
             >
               <SelectTrigger id="tone">
