@@ -14,6 +14,7 @@ import {
 } from "@/lib/types";
 import { format } from "date-fns";
 import { Edit, Trash2, ExternalLink, ArrowLeft, FileQuestion } from "lucide-react";
+import { formatSalary } from "@/lib/utils/currency";
 import { NotesTimeline } from "@/components/NotesTimeline";
 import { RemindersList } from "@/components/RemindersList";
 import { EmptyState } from "@/components/EmptyState";
@@ -185,7 +186,7 @@ export default function ApplicationDetail() {
               {app.salary && (
                 <Detail
                   label="Salary"
-                  value={`${app.salary.toLocaleString()} ${app.currency || 'USD'}`}
+                  value={formatSalary(app.salary, app.currency)}
                 />
               )}
               {app.resume_versions && (

@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { DatePicker } from "@/components/ui/date-picker";
+import { CURRENCIES, DEFAULT_CURRENCY } from "@/lib/utils/currency";
 import {
   APPLICATION_STAGES, STAGE_LABELS,
   EMPLOYMENT_TYPE_LABELS, WORK_MODE_LABELS,
@@ -49,7 +50,7 @@ export default function ApplicationForm() {
     work_mode: "remote" as WorkMode,
     source: "",
     salary: "",
-    currency: "USD",
+    currency: DEFAULT_CURRENCY,
     applied_date: new Date().toISOString().split("T")[0],
     current_stage: "applied" as ApplicationStage,
     job_url: "",
@@ -68,7 +69,7 @@ export default function ApplicationForm() {
       work_mode: existing.work_mode,
       source: existing.source,
       salary: existing.salary?.toString() ?? "",
-      currency: existing.currency ?? "USD",
+      currency: existing.currency ?? DEFAULT_CURRENCY,
       applied_date: existing.applied_date,
       current_stage: existing.current_stage,
       job_url: existing.job_url ?? "",
@@ -89,7 +90,7 @@ export default function ApplicationForm() {
         work_mode: form.work_mode,
         source: form.source.trim(),
         salary: form.salary ? Number(form.salary) : null,
-        currency: form.currency || "USD",
+        currency: form.currency || DEFAULT_CURRENCY,
         applied_date: form.applied_date,
         current_stage: form.current_stage,
         job_url: form.job_url.trim() || null,
@@ -213,14 +214,11 @@ export default function ApplicationForm() {
                   <Select value={form.currency} onValueChange={(v) => set("currency", v)}>
                     <SelectTrigger id="currency"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USD">USD</SelectItem>
-                      <SelectItem value="EUR">EUR</SelectItem>
-                      <SelectItem value="GBP">GBP</SelectItem>
-                      <SelectItem value="CAD">CAD</SelectItem>
-                      <SelectItem value="AUD">AUD</SelectItem>
-                      <SelectItem value="INR">INR</SelectItem>
-                      <SelectItem value="JPY">JPY</SelectItem>
-                      <SelectItem value="CNY">CNY</SelectItem>
+                      {CURRENCIES.map((currency) => (
+                        <SelectItem key={currency.code} value={currency.code}>
+                          {currency.symbol} {currency.code} - {currency.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
