@@ -31,7 +31,7 @@ export default function Landing() {
       {/* Navbar */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container flex h-14 items-center justify-between">
-          <span className="font-heading text-lg font-bold text-primary">ApplyFlow</span>
+          <img src="/applyflow_refined_logo_1.png" alt="ApplyFlow" className="h-[4.25rem]" />
           <div className="flex items-center gap-1 sm:gap-2">
             <Link to="/login">
               <Button variant="ghost" size="sm" className="px-2 sm:px-3">Log in</Button>
