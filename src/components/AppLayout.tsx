@@ -2,13 +2,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { LayoutDashboard, Briefcase, FileText, LogOut, Menu } from "lucide-react";
+import { LayoutDashboard, Briefcase, FileText, LogOut, Menu, BarChart3 } from "lucide-react";
 import { useState } from "react";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/applications", label: "Applications", icon: Briefcase },
   { to: "/resumes", label: "Resumes", icon: FileText },
+  { to: "/analyze", label: "Analysis", icon: BarChart3 },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
