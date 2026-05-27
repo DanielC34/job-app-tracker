@@ -36,8 +36,15 @@ async function invokeFunction<T>(
     functionName: string,
     payload: Record<string, unknown>
 ): Promise<T> {
+    const session = await supabase.auth.getSession();
+
+    const token = session.data.session?.access_token;
+
     const { data, error } = await supabase.functions.invoke<T>(functionName, {
         body: payload,
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
     });
     if (error) throw new Error(error.message);
     if (!data) throw new Error(`No response from ${functionName}`);
@@ -97,4 +104,22 @@ export function invokeFollowUpGenerator(params: FollowUpParams) {
         "follow-up-generator",
         params
     );
+}
+
+export interface JobMatchResult {
+  matchScore: number;
+  missingSkills: string[];
+  suggestions: string[];
+}
+
+export interface JobMatchParams {
+  resume: string;
+  jobDescription: string;
+}
+
+export function invokeJobMatchAnalysis(params: JobMatchParams) {
+  return invokeFunction<AiSuccessResponse<JobMatchResult>>(
+    "job-match-score",
+    params,
+  );
 }
